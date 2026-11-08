@@ -1,0 +1,418 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Fizibilite Değerlendirme</title>
+<meta name="description" content="Fizibilite Komitesi anonim proje puanlama anketi">
+<style>
+  :root{
+    --bg:#f4f6f8; --card:#fff; --ink:#12232e; --muted:#5d7080; --line:#dfe6ec;
+    --brand:#0f6e5c; --brand-soft:#e6f2ef; --brand-ink:#0a4c40; --danger:#b3261e; --radius:14px;
+  }
+  @media (prefers-color-scheme: dark){
+    :root:not([data-theme="light"]){
+      --bg:#101619; --card:#18222a; --ink:#e6edf1; --muted:#95a7b3; --line:#2b3942;
+      --brand:#2f9c84; --brand-soft:#173029; --brand-ink:#9fdccb; --danger:#f28b82;
+    }
+    :root:not([data-theme="light"]) .ipucu{background:#1c272e;}
+    :root:not([data-theme="light"]) .scale label{background:var(--card);}
+    :root:not([data-theme="light"]) input[type=text]{background:var(--card);}
+    :root:not([data-theme="light"]) .durum.kapali .ico{background:#3a2f12;color:#f3cf6b;}
+  }
+  :root[data-theme="dark"]{
+    --bg:#101619; --card:#18222a; --ink:#e6edf1; --muted:#95a7b3; --line:#2b3942;
+    --brand:#2f9c84; --brand-soft:#173029; --brand-ink:#9fdccb; --danger:#f28b82;
+  }
+  *{box-sizing:border-box;}
+  html,body{margin:0;padding:0;}
+  body{
+    background:var(--bg); color:var(--ink); font-size:16px; line-height:1.5;
+    font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,"Helvetica Neue",Arial,sans-serif;
+    -webkit-font-smoothing:antialiased; padding:0 0 64px;
+  }
+  .wrap{max-width:760px;margin:0 auto;padding:0 16px;}
+
+  header.hero{background:linear-gradient(135deg,var(--brand-ink),var(--brand));color:#fff;padding:34px 0 28px;margin-bottom:20px;}
+  .eyebrow{font-size:12px;letter-spacing:.14em;text-transform:uppercase;opacity:.82;margin:0 0 8px;}
+  h1{font-size:23px;line-height:1.28;margin:0 0 10px;font-weight:650;}
+  .hero p.desc{margin:0;opacity:.9;font-size:14.5px;max-width:58ch;}
+
+  .card{background:var(--card);border:1px solid var(--line);border-radius:var(--radius);padding:20px;margin-bottom:14px;}
+  .card.intro{border-left:4px solid var(--brand);}
+  .label{font-weight:600;font-size:15px;margin:0 0 4px;display:block;}
+  .req{color:var(--danger);margin-left:2px;}
+  .hint{color:var(--muted);font-size:13px;margin:0 0 12px;}
+
+  input[type=text]{
+    width:100%;padding:12px 14px;font-size:16px;font-family:inherit;border:1px solid var(--line);
+    border-radius:10px;background:#fff;color:var(--ink);transition:border-color .15s,box-shadow .15s;
+  }
+  #kimlik{text-transform:uppercase;letter-spacing:.04em;font-weight:600;}
+  input[type=text]:focus{outline:none;border-color:var(--brand);box-shadow:0 0 0 3px var(--brand-soft);}
+
+  .gizlilik{
+    display:flex;gap:10px;align-items:flex-start;background:var(--brand-soft);
+    border-radius:10px;padding:12px 14px;margin-top:14px;color:var(--brand-ink);font-size:13.2px;line-height:1.45;
+  }
+  .gizlilik .ico{flex:0 0 auto;font-size:15px;line-height:1.3;}
+
+  .q-head{display:flex;gap:12px;align-items:flex-start;margin-bottom:14px;}
+  .q-num{flex:0 0 auto;width:28px;height:28px;border-radius:50%;background:var(--brand-soft);color:var(--brand-ink);
+         font-size:13px;font-weight:700;display:flex;align-items:center;justify-content:center;margin-top:1px;}
+  .q-text{font-size:15.5px;font-weight:550;line-height:1.45;}
+
+  .scale{display:grid;grid-template-columns:repeat(10,1fr);gap:6px;}
+  .scale input{position:absolute;opacity:0;width:0;height:0;}
+  .scale label{display:flex;align-items:center;justify-content:center;height:44px;border:1px solid var(--line);
+    border-radius:9px;background:#fff;cursor:pointer;font-size:15px;font-weight:600;color:var(--muted);
+    user-select:none;transition:all .12s;}
+  .scale label:hover{border-color:var(--brand);color:var(--brand-ink);}
+  .scale input:checked + label{background:var(--brand);border-color:var(--brand);color:#fff;box-shadow:0 2px 6px rgba(15,110,92,.3);}
+  .scale input:focus-visible + label{box-shadow:0 0 0 3px var(--brand-soft);}
+  .scale-ends{display:flex;justify-content:space-between;color:var(--muted);font-size:12px;margin-top:7px;}
+
+  .ipucu{
+    display:flex;gap:8px;align-items:center;justify-content:center;
+    color:var(--muted);font-size:13px;margin:0 0 14px;padding:10px 14px;
+    background:#eef2f5;border-radius:10px;
+  }
+  .ipucu b{color:var(--brand-ink);font-weight:600;}
+
+  .card.invalid{border-color:var(--danger);box-shadow:0 0 0 3px rgba(179,38,30,.08);}
+  .err{color:var(--danger);font-size:13px;margin-top:9px;display:none;}
+  .card.invalid .err{display:block;}
+
+  .actions{margin-top:20px;display:flex;flex-direction:column;gap:12px;align-items:center;}
+  button.submit{width:100%;padding:15px;border:none;border-radius:12px;background:var(--brand);color:#fff;
+    font-size:16.5px;font-weight:650;font-family:inherit;cursor:pointer;transition:background .15s,transform .05s;}
+  button.submit:hover{background:var(--brand-ink);}
+  button.submit:active{transform:translateY(1px);}
+  button.submit:disabled{background:#9fb3ad;cursor:not-allowed;}
+  .progress{color:var(--muted);font-size:13.5px;}
+  .progress b{color:var(--brand-ink);}
+
+  .durum{text-align:center;padding:48px 24px;}
+  .durum .ico{width:64px;height:64px;border-radius:50%;background:var(--brand-soft);color:var(--brand);
+    font-size:30px;line-height:64px;margin:0 auto 18px;}
+  .durum.kapali .ico{background:#fdeec8;color:#7a5a00;}
+  .durum h2{margin:0 0 8px;font-size:21px;}
+  .durum p{color:var(--muted);margin:0;}
+  .durum.hata .ico{background:#fbe3e1;color:var(--danger);}
+  .durum button{margin-top:18px;padding:11px 22px;border:1px solid var(--brand);border-radius:10px;background:transparent;
+    color:var(--brand-ink);font:inherit;font-weight:600;cursor:pointer;}
+  .spin{width:40px;height:40px;border-radius:50%;border:4px solid var(--brand-soft);border-top-color:var(--brand);
+    margin:0 auto 16px;animation:dn .9s linear infinite;}
+  @keyframes dn{to{transform:rotate(360deg);}}
+  .durum p.donem-kod{margin-top:14px;font-size:12px;letter-spacing:.06em;text-transform:uppercase;opacity:.75;}
+
+  footer{color:var(--muted);font-size:12.5px;text-align:center;margin-top:26px;}
+  .hidden{display:none;}
+
+  @media (max-width:560px){
+    h1{font-size:19.5px;}
+    .card{padding:16px;}
+    .scale{grid-template-columns:repeat(5,1fr);gap:7px;}
+    .scale label{height:46px;}
+  }
+</style>
+</head>
+<body>
+
+<header class="hero">
+  <div class="wrap">
+    <p class="eyebrow" id="eyebrow">Fizibilite Komitesi Değerlendirmesi</p>
+    <h1 id="baslik">Yükleniyor…</h1>
+    <p class="desc" id="aciklama"></p>
+  </div>
+</header>
+
+<div class="wrap">
+  <div id="form-alani" class="hidden">
+    <div class="card intro" id="kimlik-karti">
+      <label class="label" for="kimlik" id="kimlik-label">Katılım Kodu <span class="req">*</span></label>
+      <p class="hint" id="kimlik-hint">Size iletilen katılım kodunu giriniz.</p>
+      <input type="text" id="kimlik" autocomplete="off" spellcheck="false" placeholder="ÖRN. UYE-07">
+      <div class="err" id="kimlik-err">Bu alan zorunludur.</div>
+      <div class="gizlilik" id="gizlilik-notu">
+        <span class="ico">&#128274;</span>
+        <span>Kodunuz yalnızca mükerrer oylamayı engellemek ve katılım takibi için kullanılır.
+              Verdiğiniz puanlar kodunuzla <b>eşleştirilmez</b>; oylar ayrı bir sayfada karıştırılarak saklanır.</span>
+      </div>
+    </div>
+
+    <p class="ipucu">Seçtiğiniz puana <b>yeniden tıklarsanız</b> cevabınız geri alınır.</p>
+
+    <div id="projeler"></div>
+
+    <div class="actions">
+      <div class="progress" id="ilerleme"></div>
+      <button class="submit" id="gonder">Değerlendirmeyi Gönder</button>
+    </div>
+  </div>
+
+  <div id="tesekkur" class="card durum hidden">
+    <div class="ico">&#10003;</div>
+    <h2>Teşekkür ederiz</h2>
+    <p>Değerlendirmeniz anonim olarak kaydedildi. Bu sayfayı kapatabilirsiniz.</p>
+  </div>
+
+  <div id="yukleniyor" class="card durum">
+    <div class="spin"></div>
+    <p>Anket yükleniyor…</p>
+  </div>
+
+  <div id="baglanti" class="card durum hata hidden">
+    <div class="ico">!</div>
+    <h2>Bağlantı kurulamadı</h2>
+    <p id="baglanti-mesaj">Anket bilgileri alınamadı. İnternet bağlantınızı kontrol edip tekrar deneyin.</p>
+    <button type="button" id="tekrar">Tekrar dene</button>
+  </div>
+
+  <div id="kapali" class="card durum kapali hidden">
+    <div class="ico">&#8987;</div>
+    <h2>Değerlendirme kapalı</h2>
+    <p id="kapali-mesaj">Bu dönem için değerlendirme şu anda açık değil.</p>
+  </div>
+
+  <footer id="altbilgi"></footer>
+</div>
+
+<script>
+/* ======================================================================
+   VERİ SERVİSİ ADRESİ — Apps Script web uygulamasının …/exec adresi.
+   Apps Script → Dağıt → Dağıtımları yönet → Web uygulaması URL'si.
+   "Yeni sürüm" ile güncellediğiniz sürece bu adres değişmez.
+   ====================================================================== */
+var API_URL = 'https://script.google.com/macros/s/AKfycbxJeAusEhuuWAM8hKxAgHBKRqwm-7AT6tRmRj3eCAsyZZk4Wd9oYb1qVUviosi7yzJfnQ/exec';
+
+var APP = {};
+var PROJELER = [];
+var KIMLIK = 'KOD';
+var gonderiliyor = false;
+
+function paramDonem(){
+  try { return (new URLSearchParams(location.search).get('d') || '').trim(); } catch(e){ return ''; }
+}
+
+/* Çerezsiz (credentials: omit) istek: Google hesap yönlendirmesi devreye girmez. */
+function apiGet(){
+  var u = API_URL + '?api=1&_=' + Date.now();
+  var d = paramDonem();
+  if(d) u += '&d=' + encodeURIComponent(d);
+  return fetch(u, { method:'GET', credentials:'omit', redirect:'follow', cache:'no-store' })
+    .then(function(r){ if(!r.ok) throw new Error('HTTP ' + r.status); return r.json(); });
+}
+function apiPost(veri){
+  return fetch(API_URL, { method:'POST', credentials:'omit', redirect:'follow',
+                          body: JSON.stringify(veri) })   // text/plain gövde: ön kontrol (preflight) gerekmez
+    .then(function(r){ if(!r.ok) throw new Error('HTTP ' + r.status); return r.json(); });
+}
+
+function yukle(){
+  document.getElementById('baglanti').classList.add('hidden');
+  document.getElementById('yukleniyor').classList.remove('hidden');
+  if(!API_URL){                                   // yerel önizleme
+    APP = window.APP_VERI || {}; baslat(); return;
+  }
+  apiGet().then(function(v){ APP = v || {}; baslat(); })
+          .catch(function(e){
+            document.getElementById('yukleniyor').classList.add('hidden');
+            document.getElementById('baglanti-mesaj').textContent =
+              'Anket bilgileri alınamadı (' + (e && e.message || 'hata') + '). İnternet bağlantınızı kontrol edip tekrar deneyin.';
+            document.getElementById('baglanti').classList.remove('hidden');
+          });
+}
+function baslat(){
+  PROJELER = APP.projeler || [];
+  KIMLIK = (APP.kimlik || 'KOD').toUpperCase();
+  document.getElementById('yukleniyor').classList.add('hidden');
+  ciz();
+}
+
+function el(tag, cls, html){
+  var n = document.createElement(tag);
+  if(cls) n.className = cls;
+  if(html !== undefined) n.innerHTML = html;
+  return n;
+}
+function kacar(s){
+  return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+
+function ciz(){
+  document.getElementById('baslik').textContent = APP.baslik || 'Fizibilite Değerlendirme';
+  document.getElementById('eyebrow').textContent = APP.ustBaslik || 'Fizibilite Komitesi Değerlendirmesi';
+  document.getElementById('aciklama').textContent = APP.aciklama || '';
+  document.getElementById('altbilgi').textContent = APP.altBilgi || '';
+
+  if(!APP.acik || !PROJELER.length){
+    document.getElementById('kapali-mesaj').textContent = APP.kapaliMesaj || 'Değerlendirme şu anda açık değil.';
+    document.getElementById('kapali').classList.remove('hidden');
+    if(APP.donemKod){
+      var kod = el('p','donem-kod', 'Dönem kodu: ' + kacar(APP.donemKod));
+      document.getElementById('kapali').appendChild(kod);
+    }
+    return;
+  }
+  document.getElementById('form-alani').classList.remove('hidden');
+
+  // Kimlik alanı
+  var kart = document.getElementById('kimlik-karti');
+  var inp = document.getElementById('kimlik');
+  if(KIMLIK === 'ANONIM'){
+    kart.classList.add('hidden');
+  } else if(KIMLIK === 'ISIM'){
+    document.getElementById('kimlik-label').innerHTML = 'Ad Soyad <span class="req">*</span>';
+    document.getElementById('kimlik-hint').textContent = 'Değerlendirmenizin kayda geçmesi için ad ve soyadınızı yazınız.';
+    document.getElementById('kimlik-err').textContent = 'Bu alan zorunludur.';
+    document.getElementById('gizlilik-notu').classList.add('hidden');
+    inp.placeholder = 'Örn. Ayşe Yılmaz';
+    inp.style.textTransform = 'none';
+    inp.style.letterSpacing = 'normal';
+    inp.style.fontWeight = '400';
+    inp.setAttribute('autocomplete','name');
+  }
+
+  var kap = document.getElementById('projeler');
+  PROJELER.forEach(function(proje, i){
+    var k = el('div','card');
+    k.id = 'kart-' + i;
+
+    var head = el('div','q-head');
+    head.appendChild(el('div','q-num', String(i+1)));
+    head.appendChild(el('div','q-text', kacar(proje)));
+    k.appendChild(head);
+
+    var scale = el('div','scale');
+    for(var p=1; p<=10; p++){
+      var r = document.createElement('input');
+      r.type='radio'; r.name='p'+i; r.id='p'+i+'_'+p; r.value=p;
+      r.addEventListener('change', function(){
+        document.getElementById('kart-' + this.name.substring(1)).classList.remove('invalid');
+        ilerlemeGuncelle();
+      });
+      var lab = document.createElement('label');
+      lab.setAttribute('for','p'+i+'_'+p);
+      lab.textContent = p;
+      // Seçili puana yeniden tıklayınca cevabı geri al
+      lab.addEventListener('click', function(e){
+        var hedef = document.getElementById(this.getAttribute('for'));
+        if(hedef && hedef.checked){
+          e.preventDefault();
+          hedef.checked = false;
+          ilerlemeGuncelle();
+        }
+      });
+      scale.appendChild(r); scale.appendChild(lab);
+    }
+    k.appendChild(scale);
+
+    var ends = el('div','scale-ends');
+    ends.appendChild(el('span',null,'1 &middot; Çok düşük'));
+    ends.appendChild(el('span',null,'10 &middot; Çok yüksek'));
+    k.appendChild(ends);
+
+    k.appendChild(el('div','err','Lütfen 1-10 arasında bir puan seçiniz.'));
+    kap.appendChild(k);
+  });
+
+  inp.addEventListener('input', function(){
+    if(this.value.trim()) kart.classList.remove('invalid');
+  });
+  var g = document.getElementById('gonder');
+  if(!g.dataset.bagli){ g.addEventListener('click', gonder); g.dataset.bagli = '1'; }
+  ilerlemeGuncelle();
+}
+
+function ilerlemeGuncelle(){
+  var n = 0;
+  for(var i=0;i<PROJELER.length;i++){
+    if(document.querySelector('input[name="p'+i+'"]:checked')) n++;
+  }
+  document.getElementById('ilerleme').innerHTML =
+    '<b>' + n + '</b> / ' + PROJELER.length + ' proje puanlandı';
+}
+
+function gonder(){
+  if(gonderiliyor) return;
+  var ilkHata = null;
+
+  var kart = document.getElementById('kimlik-karti');
+  var inp = document.getElementById('kimlik');
+  var kimlikDeger = '';
+  if(KIMLIK !== 'ANONIM'){
+    kimlikDeger = inp.value.trim();
+    if(!kimlikDeger){ kart.classList.add('invalid'); ilkHata = kart; }
+  }
+
+  var puanlar = [];
+  for(var i=0;i<PROJELER.length;i++){
+    var sec = document.querySelector('input[name="p'+i+'"]:checked');
+    var k = document.getElementById('kart-'+i);
+    if(!sec){
+      k.classList.add('invalid');
+      if(!ilkHata) ilkHata = k;
+      puanlar.push('');
+    } else {
+      k.classList.remove('invalid');
+      puanlar.push(Number(sec.value));
+    }
+  }
+
+  if(ilkHata){ ilkHata.scrollIntoView({behavior:'smooth', block:'center'}); return; }
+
+  gonderiliyor = true;
+  var btn = document.getElementById('gonder');
+  btn.disabled = true;
+  btn.textContent = 'Gönderiliyor…';
+
+  // Dönem kodu da gönderilir: eski bir sekmeden gelen oy yanlış döneme yazılmaz
+  var veri = { kimlik: kimlikDeger, puanlar: puanlar, donem: APP.donemKod || '' };
+
+  if(API_URL){
+    apiPost(veri).then(sonuc).catch(hata);
+  } else {
+    setTimeout(function(){ sonuc({ok:true, onizleme:true}); }, 600);
+  }
+}
+
+function sonuc(c){
+  var btn = document.getElementById('gonder');
+  if(!c || c.ok !== true){
+    gonderiliyor = false;
+    btn.disabled = false;
+    btn.textContent = 'Değerlendirmeyi Gönder';
+    var mesaj = (c && c.mesaj) || 'Beklenmeyen bir hata oluştu.';
+    if(c && c.alan === 'kimlik'){
+      var kart = document.getElementById('kimlik-karti');
+      document.getElementById('kimlik-err').textContent = mesaj;
+      kart.classList.add('invalid');
+      kart.scrollIntoView({behavior:'smooth', block:'center'});
+    } else {
+      alert(mesaj);
+    }
+    return;
+  }
+  document.getElementById('form-alani').classList.add('hidden');
+  var t = document.getElementById('tesekkur');
+  t.classList.remove('hidden');
+  if(c.onizleme){
+    t.querySelector('p').textContent = 'ÖNİZLEME: Bu bir tasarım önizlemesidir, oy kaydedilmedi.';
+  }
+  window.scrollTo({top:0, behavior:'smooth'});
+}
+
+function hata(e){
+  gonderiliyor = false;
+  var btn = document.getElementById('gonder');
+  btn.disabled = false;
+  btn.textContent = 'Değerlendirmeyi Gönder';
+  alert('Kayıt sırasında bir hata oluştu, lütfen tekrar deneyin.\n\n' + ((e && e.message) || ''));
+}
+
+document.getElementById('tekrar').addEventListener('click', yukle);
+yukle();
+</script>
+</body>
+</html>
