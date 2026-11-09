@@ -230,6 +230,55 @@ function baslat(){
   ciz();
 }
 
+/* Cihaz kilidi (yalnızca tam anonim modda kullanılır): tarayıcıya yazılan rastgele kimlik. */
+function cihazKimligi(){
+  try{
+    var k = localStorage.getItem('fk_cihaz');
+    if(!k){
+      k = (window.crypto && crypto.randomUUID) ? crypto.randomUUID()
+        : 'c' + Date.now().toString(36) + Math.random().toString(36).slice(2, 12);
+      localStorage.setItem('fk_cihaz', k);
+    }
+    return k;
+  }catch(e){ return ''; }
+}
+function oyVerildiMi(){ try{ return localStorage.getItem('fk_oy_' + (APP.donemKod||'')) === '1'; }catch(e){ return false; } }
+function oyVerildiIsaretle(){ try{ localStorage.setItem('fk_oy_' + (APP.donemKod||''), '1'); }catch(e){} }
+/* Taslak: yarım kalan seçimler aynı tarayıcıda saklanır, gönderimde silinir. */
+function taslakAnahtar(){ return 'fk_taslak_' + (APP.donemKod||''); }
+function taslakKaydet(){
+  try{
+    var t = { kimlik: (document.getElementById('kimlik').value || ''), puanlar: {} };
+    for(var i=0;i<PROJELER.length;i++){
+      var sec = document.querySelector('input[name="p'+i+'"]:checked');
+      if(sec) t.puanlar[i] = Number(sec.value);
+    }
+    localStorage.setItem(taslakAnahtar(), JSON.stringify(t));
+  }catch(e){}
+}
+function taslakYukle(){
+  try{
+    var raw = localStorage.getItem(taslakAnahtar()); if(!raw) return false;
+    var t = JSON.parse(raw) || {}; var geri = 0;
+    if(t.kimlik && KIMLIK !== 'ANONIM') document.getElementById('kimlik').value = t.kimlik;
+    Object.keys(t.puanlar || {}).forEach(function(i){
+      var r = document.getElementById('p' + i + '_' + t.puanlar[i]);
+      if(r){ r.checked = true; geri++; }
+    });
+    return geri > 0;
+  }catch(e){ return false; }
+}
+function taslakSil(){ try{ localStorage.removeItem(taslakAnahtar()); }catch(e){} }
+
+function zatenCevaplandi(){
+  document.getElementById('form-alani').classList.add('hidden');
+  var t = document.getElementById('tesekkur');
+  t.querySelector('h2').textContent = 'Değerlendirmeniz alınmıştı';
+  t.querySelector('p').textContent = 'Bu cihazdan bu dönem için değerlendirme zaten gönderildi. Teşekkür ederiz.';
+  t.classList.remove('hidden');
+  window.scrollTo({top:0, behavior:'smooth'});
+}
+
 function el(tag, cls, html){
   var n = document.createElement(tag);
   if(cls) n.className = cls;
@@ -255,6 +304,7 @@ function ciz(){
     }
     return;
   }
+  if(KIMLIK === 'ANONIM' && oyVerildiMi()){ zatenCevaplandi(); return; }
   document.getElementById('form-alani').classList.remove('hidden');
 
   // Kimlik alanı
@@ -290,7 +340,7 @@ function ciz(){
       r.type='radio'; r.name='p'+i; r.id='p'+i+'_'+p; r.value=p;
       r.addEventListener('change', function(){
         document.getElementById('kart-' + this.name.substring(1)).classList.remove('invalid');
-        ilerlemeGuncelle();
+        ilerlemeGuncelle(); taslakKaydet();
       });
       var lab = document.createElement('label');
       lab.setAttribute('for','p'+i+'_'+p);
@@ -301,7 +351,7 @@ function ciz(){
         if(hedef && hedef.checked){
           e.preventDefault();
           hedef.checked = false;
-          ilerlemeGuncelle();
+          ilerlemeGuncelle(); taslakKaydet();
         }
       });
       scale.appendChild(r); scale.appendChild(lab);
@@ -319,9 +369,14 @@ function ciz(){
 
   inp.addEventListener('input', function(){
     if(this.value.trim()) kart.classList.remove('invalid');
+    taslakKaydet();
   });
   var g = document.getElementById('gonder');
   if(!g.dataset.bagli){ g.addEventListener('click', gonder); g.dataset.bagli = '1'; }
+  if(taslakYukle()){
+    var not = el('p','ipucu','Yarım kalan değerlendirmeniz <b>kaldığı yerden</b> geri yüklendi.');
+    kap.parentNode.insertBefore(not, kap);
+  }
   ilerlemeGuncelle();
 }
 
@@ -368,7 +423,8 @@ function gonder(){
   btn.textContent = 'Gönderiliyor…';
 
   // Dönem kodu da gönderilir: eski bir sekmeden gelen oy yanlış döneme yazılmaz
-  var veri = { kimlik: kimlikDeger, puanlar: puanlar, donem: APP.donemKod || '' };
+  var veri = { kimlik: kimlikDeger, puanlar: puanlar, donem: APP.donemKod || '',
+               cihaz: KIMLIK === 'ANONIM' ? cihazKimligi() : '' };
 
   if(API_URL){
     apiPost(veri).then(sonuc).catch(hata);
@@ -379,6 +435,7 @@ function gonder(){
 
 function sonuc(c){
   var btn = document.getElementById('gonder');
+  if(c && c.tekrar){ oyVerildiIsaretle(); taslakSil(); zatenCevaplandi(); return; }
   if(!c || c.ok !== true){
     gonderiliyor = false;
     btn.disabled = false;
@@ -394,6 +451,8 @@ function sonuc(c){
     }
     return;
   }
+  if(KIMLIK === 'ANONIM' && !c.onizleme) oyVerildiIsaretle();
+  if(!c.onizleme) taslakSil();
   document.getElementById('form-alani').classList.add('hidden');
   var t = document.getElementById('tesekkur');
   t.classList.remove('hidden');
