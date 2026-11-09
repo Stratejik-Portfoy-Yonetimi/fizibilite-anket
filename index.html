@@ -275,11 +275,13 @@ function cihazKimligi(){
     return k;
   }catch(e){ return ''; }
 }
-function oyVerildiMi(){ try{ return localStorage.getItem('fk_oy_' + (APP.donemKod||'')) === '1'; }catch(e){ return false; } }
-function oyVerildiIsaretle(){ try{ localStorage.setItem('fk_oy_' + (APP.donemKod||''), '1'); }catch(e){} }
+/* Dönem anahtarı: dönem kodu + oturum damgası. Dönem yeniden başlatılınca damga değişir, eski kilit/taslak geçersiz olur. */
+function donemAnahtari(){ return (APP.donemKod||'') + '_' + (APP.oturum||''); }
+function oyVerildiMi(){ try{ return localStorage.getItem('fk_oy_' + donemAnahtari()) === '1'; }catch(e){ return false; } }
+function oyVerildiIsaretle(){ try{ localStorage.setItem('fk_oy_' + donemAnahtari(), '1'); }catch(e){} }
 
 /* ---------- taslak ---------- */
-function taslakAnahtar(){ return 'fk_taslak_' + (APP.donemKod||''); }
+function taslakAnahtar(){ return 'fk_taslak_' + donemAnahtari(); }
 function taslakKaydet(){
   try{
     var t = { kimlik: ($('kimlik').value || ''), puanlar: {} };
