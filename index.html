@@ -188,6 +188,8 @@ var API_URL = 'https://script.google.com/macros/s/AKfycbxJeAusEhuuWAM8hKxAgHBKRq
 /* Varsayılan metinler — Sheets'teki "Metinler" sayfasından değiştirilebilir (boş bırakılan satırda bunlar kullanılır). */
 var VARSAYILAN = {
   ustBaslik:        'Fizibilite Komitesi Değerlendirmesi',
+  aciklama:         '',
+  altBilgi:         '',
   ipucu:            'Seçtiğiniz puana **yeniden tıklarsanız** cevabınız geri alınır.',
   kodEtiket:        'Katılım Kodu',
   kodIpucu:         'Size iletilen katılım kodunu giriniz.',
@@ -226,7 +228,15 @@ var KIMLIK = 'KOD';
 var gonderiliyor = false;
 
 /* ---------- metin yardımcıları ---------- */
-function m(k){ var v = M[k]; return (v !== undefined && v !== null && String(v).trim() !== '') ? String(v) : (VARSAYILAN[k] || ''); }
+/* Sunucu boş hücre için varsayılanı, "-" için boş metni gönderir; boş metin = öğe gizlenir. */
+function m(k){ var v = M[k]; return (v !== undefined && v !== null) ? String(v) : (VARSAYILAN[k] || ''); }
+/* Öğeye metni yazar; metin boşsa öğeyi gizler. */
+function yaz(id, metin, html){
+  var e = $(id); if(!e) return;
+  var t = String(metin || '');
+  if(html) e.innerHTML = zengin(t); else e.textContent = t;
+  e.classList.toggle('hidden', t.trim() === '');
+}
 function kacar(s){
   return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
 }
@@ -314,7 +324,9 @@ function durumGoster(id){
 function tesekkurGoster(baslik, metin){
   var t = $('tesekkur');
   t.querySelector('h2').textContent = baslik;
+  t.querySelector('h2').classList.toggle('hidden', !String(baslik||'').trim());
   t.querySelector('p').innerHTML = zengin(metin);
+  t.querySelector('p').classList.toggle('hidden', !String(metin||'').trim());
   durumGoster('tesekkur');
   window.scrollTo({top:0, behavior:'smooth'});
 }
@@ -342,15 +354,15 @@ function baslat(){
 function ciz(){
   document.title = APP.baslik || document.title;
   $('baslik').textContent = APP.baslik || '';
-  $('eyebrow').textContent = APP.ustBaslik || m('ustBaslik');
-  $('aciklama').textContent = APP.aciklama || '';
-  $('altbilgi').textContent = APP.altBilgi || '';
+  yaz('eyebrow', (APP.ustBaslik !== undefined && APP.ustBaslik !== null) ? APP.ustBaslik : m('ustBaslik'));
+  yaz('aciklama', (APP.aciklama !== undefined && APP.aciklama !== null) ? APP.aciklama : m('aciklama'));
+  yaz('altbilgi', (APP.altBilgi !== undefined && APP.altBilgi !== null) ? APP.altBilgi : m('altBilgi'));
 
   if(!APP.acik || !PROJELER.length){
-    $('kapali-baslik').textContent = m('kapaliBaslik');
-    $('kapali-mesaj').innerHTML = zengin(APP.kapaliMesaj || m('kapaliMetin'));
+    yaz('kapali-baslik', m('kapaliBaslik'));
+    yaz('kapali-mesaj', (APP.kapaliMesaj !== undefined && APP.kapaliMesaj !== null) ? APP.kapaliMesaj : m('kapaliMetin'), true);
     var eskiKod = $('kapali').querySelector('.donem-kod'); if(eskiKod) eskiKod.remove();
-    if(APP.donemKod) $('kapali').appendChild(el('p','donem-kod', kacar(m('donemKoduEtiket') + ': ' + APP.donemKod)));
+    if(APP.donemKod && m('donemKoduEtiket').trim()) $('kapali').appendChild(el('p','donem-kod', kacar(m('donemKoduEtiket') + ': ' + APP.donemKod)));
     durumGoster('kapali');
     return;
   }
@@ -358,8 +370,8 @@ function ciz(){
   durumGoster('form-alani');
 
   // Sabit metinler
-  $('ipucu').innerHTML = zengin(m('ipucu'));
-  $('gonder').textContent = m('gonderDugme');
+  yaz('ipucu', m('ipucu'), true);
+  $('gonder').textContent = m('gonderDugme') || VARSAYILAN.gonderDugme;
 
   // Kimlik alanı
   var kart = $('kimlik-karti');
@@ -369,7 +381,7 @@ function ciz(){
     kart.classList.add('hidden');
   } else if(KIMLIK === 'ISIM'){
     $('kimlik-label').textContent = m('isimEtiket');
-    $('kimlik-hint').textContent = m('isimIpucu');
+    yaz('kimlik-hint', m('isimIpucu'));
     $('gizlilik-notu').classList.add('hidden');
     inp.placeholder = m('isimYerTutucu');
     inp.style.textTransform = 'none';
@@ -378,8 +390,9 @@ function ciz(){
     inp.setAttribute('autocomplete','name');
   } else {
     $('kimlik-label').textContent = m('kodEtiket');
-    $('kimlik-hint').textContent = m('kodIpucu');
+    yaz('kimlik-hint', m('kodIpucu'));
     $('gizlilik-metin').innerHTML = zengin(m('gizlilikNotu'));
+    $('gizlilik-notu').classList.toggle('hidden', m('gizlilikNotu').trim() === '');
     inp.placeholder = m('kodYerTutucu');
   }
 
@@ -417,10 +430,12 @@ function ciz(){
     }
     k.appendChild(scale);
 
-    var ends = el('div','scale-ends');
-    ends.appendChild(el('span',null,kacar(m('olcekDusuk'))));
-    ends.appendChild(el('span',null,kacar(m('olcekYuksek'))));
-    k.appendChild(ends);
+    if(m('olcekDusuk').trim() || m('olcekYuksek').trim()){
+      var ends = el('div','scale-ends');
+      ends.appendChild(el('span',null,kacar(m('olcekDusuk'))));
+      ends.appendChild(el('span',null,kacar(m('olcekYuksek'))));
+      k.appendChild(ends);
+    }
 
     k.appendChild(el('div','err',kacar(m('puanHata'))));
     kap.appendChild(k);
@@ -436,7 +451,8 @@ function ciz(){
   var g = $('gonder');
   if(!g.dataset.bagli){ g.addEventListener('click', gonder); g.dataset.bagli = '1'; }
 
-  if(taslakYukle()){
+  $('taslak-notu').classList.add('hidden');
+  if(taslakYukle() && m('taslakNotu').trim()){
     $('taslak-notu').innerHTML = zengin(m('taslakNotu'));
     $('taslak-notu').classList.remove('hidden');
   }
@@ -448,7 +464,7 @@ function ilerlemeGuncelle(){
   for(var i=0;i<PROJELER.length;i++){
     if(document.querySelector('input[name="p'+i+'"]:checked')) n++;
   }
-  $('ilerleme').innerHTML = zengin(sablon(m('ilerleme'), { n: '**' + n + '**', toplam: PROJELER.length }));
+  yaz('ilerleme', sablon(m('ilerleme'), { n: '**' + n + '**', toplam: PROJELER.length }), true);
 }
 
 function gonder(){
