@@ -217,12 +217,16 @@ var VARSAYILAN = {
   baglantiBaslik:   'Bağlantı kurulamadı',
   baglantiMetin:    'Anket bilgileri alınamadı. İnternet bağlantınızı kontrol edip tekrar deneyin.',
   tekrarDene:       'Tekrar dene',
+  sirada:           'Sırada bekleniyor… ({k}/{t})',
   genelHata:        'Kayıt sırasında bir hata oluştu, lütfen tekrar deneyin.',
   donemKoduEtiket:  'Dönem kodu'
 };
 
 var APP = {};
 var M = {};
+var sonVeri = null;      // yeniden deneme için son gönderilen veri
+var denemeSayisi = 0;
+var AZAMI_DENEME = 4;
 var PROJELER = [];
 var KIMLIK = 'KOD';
 var gonderiliyor = false;
@@ -500,9 +504,15 @@ function gonder(){
   btn.disabled = true;
   btn.textContent = m('gonderiliyor');
 
-  var veri = { kimlik: kimlikDeger, puanlar: puanlar, donem: APP.donemKod || '',
-               cihaz: KIMLIK === 'ANONIM' ? cihazKimligi() : '' };
+  sonVeri = { kimlik: kimlikDeger, puanlar: puanlar, donem: APP.donemKod || '',
+              cihaz: KIMLIK === 'ANONIM' ? cihazKimligi() : '' };
+  denemeSayisi = 0;
+  gonderimiYap();
+}
 
+function gonderimiYap(){
+  denemeSayisi++;
+  var veri = sonVeri;
   if(API_URL){
     apiPost(veri).then(sonuc).catch(hata);
   } else if(appsScriptVar()){
@@ -510,6 +520,15 @@ function gonder(){
   } else {
     setTimeout(function(){ sonuc({ok:true, onizleme:true}); }, 600);   // yerel önizleme
   }
+}
+
+/* Sunucu yoğun ya da ağ hatası: kullanıcıya hata göstermeden, artan aralıkla kendiliğinden yeniden dene. */
+function yenidenDene(){
+  if(denemeSayisi >= AZAMI_DENEME) return false;
+  var bekle = 2000 * denemeSayisi + Math.floor(Math.random() * 1500);
+  $('gonder').textContent = sablon(m('sirada'), { k: denemeSayisi, t: AZAMI_DENEME - 1 });
+  setTimeout(gonderimiYap, bekle);
+  return true;
 }
 
 function dugmeSifirla(){
@@ -521,6 +540,7 @@ function dugmeSifirla(){
 
 function sonuc(c){
   if(c && c.tekrar){ oyVerildiIsaretle(); taslakSil(); zatenCevaplandi(); return; }
+  if(c && c.yogun && yenidenDene()) return;
   if(!c || c.ok !== true){
     dugmeSifirla();
     var mesaj = (c && c.mesaj) || m('genelHata');
@@ -540,6 +560,7 @@ function sonuc(c){
 }
 
 function hata(e){
+  if(yenidenDene()) return;                      // ağ hatası: önce sessizce yeniden dene
   dugmeSifirla();
   alert(m('genelHata') + '\n\n' + ((e && e.message) || ''));
 }
